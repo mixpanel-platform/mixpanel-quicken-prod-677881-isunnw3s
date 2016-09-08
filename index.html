@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -5,11 +6,193 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
   </head>
   <body class="mixpanel-platform-body">
-    <h1>Hello, World!</h1>
+    <div class="mixpanel-platform-section">
+      <div id="dateSelect" style="float: right;"></div>
+      <div style="clear: both;"></div>
+       <div id="mediumSelect" style="float: left;"></div>
+      <div style="clear: both;"></div>
+    </div>
+    
+    <table id="table" class="display" width="100%">
+
+    </table>
+    <script language="jql" class="query">
+      function getDay(event) {
+        return new Date(event.time).toISOString().substr(0, 10);
+      }
+      
+      function main() {
+        return Events({
+          from_date: params.fromDate,
+          to_date:   params.toDate,
+          event_selectors: [{event: "Session Start"}, {event: "Cart Add"}, {event: "Transaction"}]
+        })
+        .filter(item => item.properties.utm_medium == params.utm_medium || params.utm_medium == undefined)
+        .groupByUser([getDay, "properties.utm_medium", "properties.utm_campaign"],function(state, events){
+          state = state || {
+                sessions  : 0,
+                carts     : 0,
+                orders    : 0,
+                units     : 0,
+                revenue   : 0
+          }
+          _.each(events, function(event){
+            if (event.name == "Session Start") {
+              state["sessions"] += 1
+            }
+            
+            if (event.name == "Cart Add") {
+              state["carts"] += 1
+            }
+            
+            if (event.name == "Transaction") {
+              state["orders"] += 1
+              state["units"] += Number(event.properties["product quantity"])
+              state["revenue"] += Number(event.properties["purchase price"])
+            }
+          })
+          return state
+        })
+        .map(item => {
+          res = {}
+          var key = item.key
+          //Gross way to nest these values for object_merge()
+          var joinedStr = [key[2], key[3], key[4]].join("~")
+          res[key[1]]={}
+          res[key[1]][joinedStr] = item.value
+          return res
+        })
+        .reduce(mixpanel.reducer.object_merge())
+      }
+    </script>
     <script>
-      // Run queries and display results here
+      function round(value, decimals) {
+        return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+      }
+      
+      var dateSelect  = $('#dateSelect').MPDatepicker();
+      var utmMedium = MP.api.propertyValues("Session Start", "utm_medium").done(function(vals) {
+        debugger
+        var options = []
+        _.each(vals, function(v){
+          
+        })
+        $("#mediumSelect").MPSelect(options)
+        
+      })
+      
+      var table;
+      $(document).ready(function() {
+        $('#table').append("<tfoot><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
+        
+        table = $('#table').DataTable( {
+          columns: [
+            { title: "Date" , data: 'date' },
+            { title: "Channel", data: 'medium' },
+            { title: "Campaign", data: 'campaign' },
+            { title: "Sessions", data: 'sessions' },
+            { title: "Carts", data: "carts" },
+            { title: "Orders", data: "orders" },
+            { title: "Units", data: "units" },
+            { title: "Revenue", data: "revenue" },
+          ],
+          "footerCallback": function( row, data, start, end, display ) {
+             console.log("footer callback: ",  row, data, start, end, display);
+              var api = this.api();
+              
+              /*$( api.column( 5 ).footer() ).html(
+                api.column( 5 ).data().reduce( function ( a, b ) {
+                  return a + b;
+                }, 0 )
+              );*/
+              
+                var intVal = function ( i ) {
+                  return typeof i === 'string' ?
+                    i.replace(/[\$,]/g, '')*1 :
+                    typeof i === 'number' ?
+                        i : 0;
+                };
+                
+                var total3 = api
+                  .column( 3 )
+                  .data()
+                  .reduce( function (a, b) {
+                    return intVal(a) + intVal(b);
+                  }, 0 );
+                  
+                  var total4 = api
+                  .column( 4 )
+                  .data()
+                  .reduce( function (a, b) {
+                    return intVal(a) + intVal(b);
+                  }, 0 );
+              
+                var total5 = api
+                  .column( 5 )
+                  .data()
+                  .reduce( function (a, b) {
+                    return intVal(a) + intVal(b);
+                  }, 0 );
+                  
+                  var total6 = api
+                  .column( 6 )
+                  .data()
+                  .reduce( function (a, b) {
+                    return intVal(a) + intVal(b);
+                  }, 0 );
+                  
+                  var total7 = api
+                  .column( 7 )
+                  .data()
+                  .reduce( function (a, b) {
+                    return intVal(a) + intVal(b);
+                  }, 0 );
+                
+                $( api.column( 3 ).footer() ).html(total3)
+                $( api.column( 4 ).footer() ).html(total4)
+                $( api.column( 5 ).footer() ).html(total5)
+                $( api.column( 6 ).footer() ).html(total6)
+                $( api.column( 7 ).footer() ).html(total7)
+              }
+        });
+        
+        
+      })
+      
+      var query = $(".query").html();
+      
+      function runQuery() {
+        var dateRange = dateSelect.MPDatepicker('value')
+        var utm_medium = mediumSelect.MP
+        var queryParams = {
+          fromDate: dateRange.from.toISOString().split('T')[0],
+          toDate: dateRange.to.toISOString().split('T')[0]
+        };
+      
+        MP.api.jql(query, queryParams).done(function(data){
+        //debugger
+          table.clear()
+          _.each(data[0], function(vals, date){
+            _.each(vals, function(obj, utmStr){
+              var [med, camp] = utmStr.split('~')
+              var ses = obj.sessions
+              var carts = obj.carts
+              var orders = obj.orders
+              var units = obj.units
+              var rev = round(obj.revenue, 2)
+              var row = _.extend({'date': date}, {medium: med, campaign: camp}, {sessions:ses, carts:carts, orders:orders, units:units, revenue:rev})
+              table.row.add(row)
+            })
+          })
+          table.draw();
+        })
+      }
+    
+     dateSelect.on('change', runQuery);
     </script>
   </body>
 </html>

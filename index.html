@@ -78,7 +78,7 @@
       var utmMedium = MP.api.propertyValues("Session Start", "utm_medium").done(function(vals) {
         debugger
         var options = []
-        _.each(vals, function(v){
+        _.each(vals.json, function(v){
           options.push({label: v, value: v})
         })
         $("#mediumSelect").MPSelect(options)

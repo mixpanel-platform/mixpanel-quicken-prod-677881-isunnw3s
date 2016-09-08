@@ -72,14 +72,14 @@
       function round(value, decimals) {
         return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
       }
-      
+      var mediumSelect= $('#mediumSelect').MPSelect();
       var dateSelect  = $('#dateSelect').MPDatepicker();
       MP.api.propertyValues("Session Start", "utm_medium").done(function(vals) {
         var options = {items: []}
         _.each(vals.json, function(v){
           options.items.push({label: v, value: v})
         })
-        $("#mediumSelect").MPSelect(options)
+        mediumSelect.MPSelect(options)
       })
       
       var table;

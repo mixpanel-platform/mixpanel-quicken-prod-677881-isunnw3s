@@ -75,7 +75,6 @@
       
       var dateSelect  = $('#dateSelect').MPDatepicker();
       MP.api.propertyValues("Session Start", "utm_medium").done(function(vals) {
-        debugger
         var options = {items: []}
         _.each(vals.json, function(v){
           options.items.push({label: v, value: v})
@@ -191,6 +190,8 @@
       }
     
      dateSelect.on('change', runQuery);
+     mediumSelect.on('change', runQuery);
+     runQuery();
     </script>
   </body>
 </html>

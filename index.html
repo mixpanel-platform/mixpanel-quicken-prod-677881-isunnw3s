@@ -79,10 +79,9 @@
         debugger
         var options = []
         _.each(vals, function(v){
-          
+          option.push({label: v, value: v})
         })
         $("#mediumSelect").MPSelect(options)
-        
       })
       
       var table;
@@ -167,7 +166,7 @@
       
       function runQuery() {
         var dateRange = dateSelect.MPDatepicker('value')
-        var utm_medium = mediumSelect.MP
+        var utm_medium = mediumSelect.MPSelect('value') || undefined
         var queryParams = {
           fromDate: dateRange.from.toISOString().split('T')[0],
           toDate: dateRange.to.toISOString().split('T')[0]
